@@ -48,7 +48,26 @@ private fun nodeJson(n:Node)=JSONObject().put("id",n.id).put("title",n.title).pu
 private fun packageJson(p:LibraryPackage)=JSONObject().put("id",p.id).put("title",p.title).put("nodes",JSONArray().also { a->p.nodes.forEach { a.put(nodeJson(it)) } })
 private fun readNode(o:JSONObject):Node { val n=Node(o.optString("id",UUID.randomUUID().toString()),o.optString("title","Untitled"),o.optBoolean("starred")); val a=o.optJSONArray("children")?:JSONArray(); for(i in 0 until a.length()) n.children.add(readNode(a.getJSONObject(i))); return n }
 private fun readPackage(o:JSONObject):LibraryPackage { val p=LibraryPackage(o.optString("id",UUID.randomUUID().toString()),o.optString("title","Untitled")); val a=o.optJSONArray("nodes")?:JSONArray(); for(i in 0 until a.length()) p.nodes.add(readNode(a.getJSONObject(i))); return p }
-private fun load(context:Context):MutableList<LibraryPackage> { return try { val raw=context.getSharedPreferences("knowledge-library-native",0).getString("packages","[]")?:"[]"; val a=JSONArray(raw); MutableList(a.length()) { readPackage(a.getJSONObject(it)) } } catch(_:Exception) { mutableListOf() } }
+private fun load(context: Context): MutableList<LibraryPackage> {
+    return try {
+        val raw: String =
+            context.getSharedPreferences("knowledge-library-native", 0)
+                .getString("packages", "[]") ?: "[]"
+
+        val array = JSONArray(raw)
+        val result: MutableList<LibraryPackage> = mutableListOf()
+
+        for (index in 0 until array.length()) {
+            val item: JSONObject = array.getJSONObject(index)
+            val libraryPackage: LibraryPackage = readPackage(item)
+            result.add(libraryPackage)
+        }
+
+        result
+    } catch (_: Exception) {
+        mutableListOf<LibraryPackage>()
+    }
+}
 private fun save(context:Context,packages:List<LibraryPackage>) { val a=JSONArray(); packages.forEach { a.put(packageJson(it)) }; context.getSharedPreferences("knowledge-library-native",0).edit().putString("packages",a.toString()).apply() }
 
 @OptIn(ExperimentalMaterial3Api::class)
