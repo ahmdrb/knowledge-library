@@ -1,0 +1,865 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="color-scheme" content="light dark">
+<title>Knowledge Library</title>
+<style>
+:root{font-family:system-ui,-apple-system,Roboto,sans-serif;color-scheme:light dark;--bg:#f5f6fa;--panel:#fff;--text:#202333;--muted:#687084;--line:#dfe3ec;--accent:#425bd5;--soft:#e9edff}
+@media(prefers-color-scheme:dark){:root{--bg:#10131a;--panel:#1b202b;--text:#eef1fa;--muted:#aab2c4;--line:#343b4a;--accent:#a6b3ff;--soft:#2b3459}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text)}header{padding:22px 16px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:3}h1{font-size:23px;margin:0 0 5px}.sub{color:var(--muted);font-size:13px}.wrap{max-width:900px;margin:auto;padding:16px}.row{display:flex;gap:8px;align-items:center}.search-controls{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 10px;align-items:center;margin:0 0 12px}.filter-label{font-size:12px;color:var(--muted);font-weight:650}.filter-select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:14px}.search{width:100%;padding:13px 14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);font-size:16px;margin:10px 0}button{border:0;border-radius:10px;padding:11px 13px;background:var(--accent);color:white;font-weight:650;font-size:14px;cursor:pointer}button.secondary{background:var(--soft);color:var(--text)}button.danger{background:#a62d42;color:white}.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}.section-title{font-size:12px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:18px 2px 8px}.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin:8px 0}.pkg{display:flex;align-items:center;gap:12px}.pkgmain{min-width:0;flex:1}.pkgtitle{font-weight:750;font-size:16px;overflow-wrap:anywhere}.meta{font-size:12px;color:var(--muted);margin-top:4px}.treeitem{border-bottom:1px solid var(--line);padding:10px 0}.treeitem:last-child{border-bottom:0}.treebtn{display:flex;align-items:flex-start;gap:5px;width:100%;padding:6px 0;text-align:left;background:transparent;color:var(--text);font-weight:550}.nodetitle{flex:1;min-width:0;text-align:left;overflow-wrap:anywhere}.nodeactions{display:flex;gap:6px;flex-wrap:wrap;margin:5px 0 0 0}.small{font-size:12px;padding:7px 9px}.crumb{color:var(--muted);font-size:13px;line-height:1.6;margin:8px 0 14px;overflow-wrap:anywhere}.empty{text-align:center;padding:28px 12px;color:var(--muted)}.result{cursor:pointer}.result strong{display:block}.highlight{background:var(--soft);border-radius:3px}.notice{color:var(--muted);font-size:12px;line-height:1.5}.editor-panel{margin:10px 0 16px}.editor-help{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 8px}.outline-editor{display:block;width:100%;min-height:55vh;resize:vertical;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);font:14px/1.6 monospace;white-space:pre;tab-size:4}.bulkbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:10px;background:var(--soft);border-radius:12px;margin:10px 0}.bulkbar label,.pickitem{display:inline-flex;gap:7px;align-items:center;font-size:13px}.bulkbar input,.pickitem input{width:18px;height:18px;accent-color:var(--accent)}.pickitem{margin:0 8px 4px 0}.hidden{display:none!important}
+body.hide-app-buttons button:not(#buttonVisibilityToggle):not(.treebtn){display:none!important}
+#buttonVisibilityToggle{
+  max-width:100%;white-space:nowrap
+}
+#packageAddItemButton{
+  position:fixed;right:14px;bottom:14px;z-index:9998;
+  border:2px solid var(--panel);border-radius:999px;
+  box-shadow:0 3px 14px #0004;padding:12px 16px;
+  max-width:calc(100vw - 28px)
+}
+footer{text-align:center;color:var(--muted);font-size:12px;padding:28px 8px}
+</style>
+</head>
+<body>
+<button id="buttonVisibilityToggle" type="button" aria-pressed="false" aria-label="Hide app buttons">Hide buttons</button>
+<header><h1>Knowledge Library</h1><div class="sub">Your searchable, offline knowledge map</div></header>
+<main class="wrap">
+  <div class="row"><input id="search" class="search" placeholder="Search packages and concepts…" autocomplete="off" aria-label="Search packages and concepts"></div>
+  <div class="search-controls">
+    <label class="filter-label" for="searchScope">Search in</label>
+    <select id="searchScope" class="filter-select" aria-label="Search scope">
+      <option value="all">Packages and concepts</option>
+      <option value="packages">Package titles only</option>
+      <option value="concepts">Concepts only</option>
+    </select>
+    <label class="filter-label" for="searchPackage">Package</label>
+    <input id="searchPackage" class="filter-select"
+      type="search" placeholder="Any package — search by name"
+      list="packageSuggestions" autocomplete="off"
+      aria-label="Search or choose a package">
+    <datalist id="packageSuggestions"></datalist>
+  </div>
+  <div class="toolbar"><button id="importBtn">＋ Import .txt outline</button><button class="secondary" id="importBackupBtn">Import backup</button><button class="secondary" id="exportBackupBtn">Export backup</button><button class="secondary" id="homeBtn">Library home</button></div>
+  <div id="status" class="notice" role="status">Imported packages stay on this device.</div>
+  <section id="searchResults"></section>
+  <section id="homeView"><div class="section-title">Your packages</div><div id="packages"></div></section>
+  <section id="detailView" class="hidden"></section>
+  <footer>Offline by design · Your imported outlines are stored on this device</footer>
+</main>
+<script>
+(() => {
+  const STORE = "knowledge-library-packages-v1";
+  const $ = id => document.getElementById(id);
+  let packages = load();
+  let currentPackageId = null;
+  let currentNodeId = null;
+  let expanded = new Set();
+  let selectedPackages = new Set();
+  let packageSelectionMode = false;
+  let selectedNodes = new Set();
+  let nodeSelectionMode = false;
+  let nextId = 1;
+
+  function load(){ try { const v=JSON.parse(localStorage.getItem(STORE)||"[]"); return Array.isArray(v)?v:[]; } catch(e){ return []; } }
+  function save(){ localStorage.setItem(STORE,JSON.stringify(packages)); }
+  function id(){ return "n"+(Date.now().toString(36))+(nextId++).toString(36); }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+  function allNodes(nodes,out=[]){ for(const n of nodes){out.push(n);allNodes(n.children||[],out);} return out; }
+  function countNodes(p){return allNodes(p.nodes||[]).length;}
+  let packageStarredOnly = false;
+  let favoritesActive = false;
+  let favoritesReturnState = null;
+  function preserveStars(oldNodes,newNodes){
+    const buckets=new Map();
+    for(const n of oldNodes||[]){
+      const k=n.title.trim().toLocaleLowerCase();
+      if(!buckets.has(k))buckets.set(k,[]);
+      buckets.get(k).push(n);
+    }
+    for(const n of newNodes||[]){
+      const bucket=buckets.get(n.title.trim().toLocaleLowerCase());
+      const old=bucket&&bucket.shift();
+      if(old&&old.starred)n.starred=true;
+      preserveStars(old?old.children:[],n.children||[]);
+    }
+  }
+  function starredCount(p){return allNodes(p.nodes||[]).filter(n=>n.starred).length;}
+  function starButton(n){return `<button class="secondary small" aria-label="${n.starred?'Unstar':'Star'} ${escapeHtml(n.title)}" onclick="toggleStar('${n.id}');event.stopPropagation()">${n.starred?'★ Starred':'☆ Star'}</button>`;}
+  window.toggleStar=function(nid){
+    for(const p of packages){
+      const f=findNode(p.nodes,nid);
+      if(f){f.node.starred=!f.node.starred;p.editedAt=new Date().toISOString();save();if(currentPackageId)renderDetail();else renderFavorites();setStatus((f.node.starred?'Starred ':'Unstarred ')+f.node.title+'.');return;}
+    }
+  };
+  function starredEntries(packageFilter=null){
+    const out=[];
+    for(const p of packages){
+      if(packageFilter&&p.id!==packageFilter)continue;
+      function walk(nodes,path=[]){
+        for(const n of nodes||[]){
+          const next=[...path,n.title];
+          if(n.starred)out.push({p,n,path:next.join(" / ")});
+          walk(n.children||[],next);
+        }
+      }
+      walk(p.nodes||[]);
+    }
+    return out;
+  }
+  function renderStarredList(entries,host){
+    host.innerHTML=entries.length?entries.map(e=>`<div class="card result"><div class="meta">${escapeHtml(e.p.title)}</div><strong>${escapeHtml(e.n.title)}</strong><div class="meta">${escapeHtml(e.path)}</div><div class="nodeactions"><button class="secondary small" onclick="openStarredNode('${e.p.id}','${e.n.id}')">Open concept</button>${starButton(e.n)}</div></div>`).join(""):'<div class="empty">No starred concepts yet. Use ☆ Star beside a concept to add it here.</div>';
+  }
+  window.openStarredNode=function(pid,nid){
+    $("search").value="";currentPackageId=pid;currentNodeId=nid;packageStarredOnly=false;
+    selectedNodes.clear();nodeSelectionMode=false;expanded=new Set();
+    const p=getPackage(),f=p&&findNode(p.nodes,nid);
+    if(f)for(const n of f.path.slice(0,-1))expanded.add(n.id);
+    renderDetail();
+  };
+  function renderFavorites(){
+    favoritesActive=true;
+    currentPackageId=null;currentNodeId=null;packageStarredOnly=false;
+    $("search").value="";$("searchResults").innerHTML="";
+    $("detailView").classList.add("hidden");$("homeView").classList.remove("hidden");
+    $("packages").innerHTML='<div class="section-title">★ All starred concepts</div><div id="globalStarred"></div>';
+    renderStarredList(starredEntries(),$("globalStarred"));
+  }
+  function exitFavorites(){
+    favoritesActive=false;
+    const previous=favoritesReturnState;
+    favoritesReturnState=null;
+    if(!previous){currentPackageId=null;currentNodeId=null;packageStarredOnly=false;$("search").value="";renderHome();return;}
+    currentPackageId=previous.packageId;
+    currentNodeId=previous.nodeId;
+    packageStarredOnly=previous.packageStarredOnly;
+    $("search").value=previous.search;
+    if(previous.searchActive){
+      search(previous.search);
+    }else if(previous.detailActive&&getPackage()){
+      renderDetail();
+    }else{
+      currentPackageId=null;currentNodeId=null;packageStarredOnly=false;
+      renderHome();
+    }
+  }
+  window.togglePackageStarred=function(){
+    packageStarredOnly=!packageStarredOnly;renderDetail();
+  };
+  function parseOutline(raw){
+    const lines = raw
+      .replace(/^\uFEFF/, "")
+      .replace(/\r\n?/g, "\n")
+      .split("\n");
+
+    const meaningful = lines
+      .map((text, index) => ({text, lineNo: index + 1}))
+      .filter(entry => entry.text.trim().length > 0);
+
+    if (!meaningful.length) {
+      throw new Error("The file has no outline lines.");
+    }
+
+    // Accept common numbering, bullets and Markdown headings.
+    const cleanTitle = text => text.trim()
+      .replace(/^#{1,6}\s+/, "")
+      .replace(/^(?:(?:\d+(?:\.\d+)*|[A-Za-z])[.)]\s+|[-*+]\s+)/, "")
+      .trim();
+
+    const rootLine = cleanTitle(meaningful[0].text);
+
+    if (!rootLine) {
+      throw new Error("The first line must contain the package title.");
+    }
+
+    const root = {id: id(), title: rootLine, children: []};
+
+    // Indentation is relative: any increase means a child,
+    // the same indentation means a sibling, and a decrease
+    // returns to the appropriate ancestor.
+    const stack = [{indent: -1, node: root}];
+    let accepted = 0;
+
+    for (const entry of meaningful.slice(1)) {
+      const expanded = entry.text.replace(/\t/g, "    ");
+      const match = expanded.match(/^ */);
+      const indent = match ? match[0].length : 0;
+      const title = cleanTitle(expanded.slice(indent));
+
+      if (!title) continue;
+
+      // Pop siblings and ancestors until the correct parent remains.
+      while (
+        stack.length > 1 &&
+        indent <= stack[stack.length - 1].indent
+      ) {
+        stack.pop();
+      }
+
+      const parent = stack[stack.length - 1].node;
+      const node = {id: id(), title, children: []};
+
+      parent.children.push(node);
+      stack.push({indent, node});
+      accepted++;
+    }
+
+    if (!accepted) {
+      throw new Error("No categories were found under the root title.");
+    }
+
+    return {title: rootLine, nodes: root.children};
+  }
+  function setStatus(s){$("status").textContent=s;}
+  let importMode="outline";
+  function importFile(mode="outline"){
+    importMode=mode;
+    if(window.NativeLibrary&&typeof window.NativeLibrary.importTextFile==="function") window.NativeLibrary.importTextFile();
+    else setStatus("Open this app on Android to import a file.");
+  }
+  function cloneBackupNode(node,depth=0){
+    if(depth>100)throw new Error("The backup hierarchy is too deeply nested.");
+    if(!node||typeof node!=="object"||Array.isArray(node)||typeof node.title!=="string"||!node.title.trim())
+      throw new Error("A concept has a missing or invalid title.");
+    if(node.children!==undefined&&!Array.isArray(node.children))
+      throw new Error("A concept's children must be a list.");
+    return {id:id(),title:node.title.trim(),starred:node.starred===true,children:(node.children||[]).map(child=>cloneBackupNode(child,depth+1))};
+  }
+  function parseBackup(raw){
+    const data=JSON.parse(raw.replace(/^\uFEFF/,""));
+    if(!data||typeof data!=="object"||data.format!=="knowledge-library-backup"||data.version!==1||!Array.isArray(data.packages))
+      throw new Error("This is not a supported Knowledge Library backup (version 1).");
+    if(data.packages.length>10000)throw new Error("The backup contains too many packages.");
+    const seen=new Set();
+    const imported=data.packages.map(p=>{
+      if(!p||typeof p.title!=="string"||!p.title.trim()||!Array.isArray(p.nodes))
+        throw new Error("Every package must have a title and a concepts list.");
+      const title=p.title.trim(), key=title.toLocaleLowerCase();
+      if(seen.has(key))throw new Error('The backup contains duplicate package titles: "'+title+'".');
+      seen.add(key);
+      return {id:id(),title,nodes:p.nodes.map(n=>cloneBackupNode(n)),importedAt:typeof p.importedAt==="string"?p.importedAt:new Date().toISOString()};
+    });
+    return imported;
+  }
+  window.receiveImportedOutline = function(raw){
+    if(importMode==="backup"){
+      const previousPackages=packages;
+      try{
+        const imported=parseBackup(raw);
+        if(!confirm("Replace your entire library with "+imported.length+" package(s) from this backup? Choose Cancel to keep your current library and consider merging instead.")){
+          if(!confirm("Merge the backup into your current library? Packages with matching titles will be replaced. Choose Cancel to leave everything unchanged.")){
+            setStatus("Backup import cancelled.");return;
+          }
+          const byTitle=new Map(packages.map(p=>[p.title.toLocaleLowerCase(),p]));
+          for(const p of imported)byTitle.set(p.title.toLocaleLowerCase(),p);
+          packages=Array.from(byTitle.values());
+        }else{
+          packages=imported;
+        }
+        save();currentPackageId=null;currentNodeId=null;expanded=new Set();
+        $("search").value="";render();setStatus("Backup imported: "+imported.length+" package(s), "+imported.reduce((sum,p)=>sum+countNodes(p),0)+" concepts.");
+      }catch(e){
+        packages=previousPackages;
+        alert("Could not import backup:\\n"+e.message+"\\n\\nYour existing library was not changed.");
+      }
+      finally{importMode="outline";}
+      return;
+    }
+    try{
+      const parsed=parseOutline(raw);
+      const existing=packages.find(p=>p.title.toLocaleLowerCase()===parsed.title.toLocaleLowerCase());
+      const pkg={id:id(),title:parsed.title,nodes:parsed.nodes,importedAt:new Date().toISOString()};
+      if(existing)preserveStars(existing.nodes,pkg.nodes);
+      if(existing){
+        if(!confirm('A package named "'+parsed.title+'" already exists. Replace it with the imported outline?')) {setStatus("Import cancelled.");return;}
+        packages=packages.map(p=>p.id===existing.id?{...pkg,id:existing.id}:p);
+      }else packages.unshift(pkg);
+      save();currentPackageId=pkg.id;currentNodeId=null;expanded=new Set();
+      $("search").value="";render();setStatus('Imported "'+parsed.title+'". '+countNodes(pkg)+' concepts saved on this device.');
+    }catch(e){alert("Could not import outline:\\n"+e.message+"\\n\\nCheck that the first line is the title and each nested level uses exactly four spaces.");}
+    finally{importMode="outline";}
+  };
+  function exportBackup(){
+    const backup={format:"knowledge-library-backup",version:1,exportedAt:new Date().toISOString(),packages:packages};
+    const raw=JSON.stringify(backup,null,2);
+    if(window.NativeLibrary&&typeof window.NativeLibrary.exportBackup==="function"){
+      window.NativeLibrary.exportBackup(raw);
+    }else{
+      setStatus("Open this app on Android to save a backup file.");
+    }
+  }
+  function renderHome(){
+    $("homeBtn").insertAdjacentElement("afterend", visibilityToggle);
+    $("homeView").classList.remove("hidden");$("detailView").classList.add("hidden");$("searchResults").innerHTML="";
+    const host=$("packages");
+    if(!packages.length){host.innerHTML=`<div class="card empty"><div style="font-size:28px;margin-bottom:8px">▤</div><strong>Your library is empty</strong><p>Import any outline saved as a plain-text .txt file to get started.</p><button onclick="document.getElementById('importBtn').click()">Import first outline</button></div>`;return;}
+    const toolbar=packageSelectionMode ? `<div class="bulkbar"><label><input type="checkbox" ${packages.length && packages.every(p=>selectedPackages.has(p.id))?"checked":""} onchange="toggleAllPackages(this.checked)"> Select all packages</label><span>${selectedPackages.size} selected</span><button class="danger small" onclick="deleteSelectedPackages()">Delete selected</button><button class="secondary small" onclick="clearPackageSelection()">Clear</button><button class="secondary small" onclick="cancelPackageSelection()">Cancel</button></div>` : `<div class="toolbar"><button class="secondary small" onclick="startPackageSelection()">Select packages</button></div>`; host.innerHTML=toolbar+packages.map(p=>`<div class="card pkg"><label class="pickitem" style="${packageSelectionMode?"":"display:none"}"><input type="checkbox" ${selectedPackages.has(p.id)?"checked":""} onchange="togglePackageSelection('${p.id}',this.checked)"> Select</label><div class="pkgmain"><div class="pkgtitle">${escapeHtml(p.title)}</div><div class="meta">${countNodes(p)} concepts · ★ ${starredCount(p)} starred · Imported ${new Date(p.importedAt).toLocaleDateString()}</div></div><button onclick="openPackage('${p.id}')">Open</button><button class="danger small" onclick="deletePackage('${p.id}')">Delete</button></div>`).join("");
+  }
+  window.startPackageSelection=function(){packageSelectionMode=true;selectedPackages=new Set();renderHome();};
+  window.togglePackageSelection=function(pid,checked){if(checked)selectedPackages.add(pid);else selectedPackages.delete(pid);renderHome();};
+  window.cancelPackageSelection=function(){selectedPackages=new Set();packageSelectionMode=false;renderHome();setStatus("Package selection cancelled.");};
+  window.toggleAllPackages=function(checked){selectedPackages=checked?new Set(packages.map(p=>p.id)):new Set();renderHome();};
+  window.clearPackageSelection=function(){selectedPackages=new Set();renderHome();setStatus("Package selection cleared.");};
+  window.deleteSelectedPackages=function(){const ids=packages.filter(p=>selectedPackages.has(p.id)).map(p=>p.id);if(!ids.length){setStatus("No packages selected.");return;}if(!confirm("Delete "+ids.length+" selected package(s) from this device? This cannot be undone."))return;packages=packages.filter(p=>!selectedPackages.has(p.id));selectedPackages.clear();if(ids.includes(currentPackageId))currentPackageId=null;save();renderHome();setStatus(ids.length+" package(s) deleted.");};
+  window.openPackage=function(pid){selectedNodes.clear();nodeSelectionMode=false;packageStarredOnly=false;currentPackageId=pid;currentNodeId=null;expanded=new Set();renderDetail();};
+  window.deletePackage=function(pid){const p=packages.find(x=>x.id===pid);if(p&&confirm('Delete "'+p.title+'" from this device? This cannot be undone.')){packages=packages.filter(x=>x.id!==pid);selectedPackages.delete(pid);save();if(currentPackageId===pid)currentPackageId=null;render();setStatus("Package deleted.");}};
+  function getPackage(){return packages.find(p=>p.id===currentPackageId);}
+  function findNode(nodes,nid,parent=null,path=[]){for(const n of nodes){const next=[...path,n];if(n.id===nid)return {node:n,parent,path:next};const f=findNode(n.children||[],nid,n,next);if(f)return f;}return null;}
+  function renderDetail(){
+    const p=getPackage();if(!p){renderHome();return;}
+    $("homeView").classList.add("hidden");$("searchResults").innerHTML="";$("detailView").classList.remove("hidden");
+    const found=currentNodeId?findNode(p.nodes,currentNodeId):null;
+    const shown=found?found.node.children:p.nodes;
+    const path=found?found.path.map(n=>n.title):[p.title];
+    $("detailView").innerHTML=`<div class="crumb"><a href="#" onclick="openPackage('${p.id}');return false">⌂ ${escapeHtml(p.title)}</a>${found?' / '+path.slice(1).map(escapeHtml).join(' / '):''}</div>
+    <div class="card"><div class="pkgtitle">${escapeHtml(found?found.node.title:p.title)}</div><div class="meta">${found?countNodes({nodes:[found.node]})+' concepts below':' '+countNodes(p)+' concepts in this package'} · ★ ${starredCount(p)} starred</div>
+    <div class="toolbar">${found?starButton(found.node):''}<button class="secondary" onclick="togglePackageStarred()">${packageStarredOnly?'Show all concepts':'★ Starred in package'}</button><button class="secondary" onclick="goParent()">↑ Parent</button><button class="secondary" onclick="expandAll()">Expand all</button><button class="secondary" onclick="collapseAll()">Collapse all</button><button class="secondary" onclick="editOutline()">✎ Edit outline</button><button class="secondary" onclick="startNodeSelection()">Select</button><button id="packageAddItemButton" onclick="addItem()">＋ Add item</button></div></div>
+    <div id="outlineEditorPanel" class="card editor-panel hidden"><div class="pkgtitle">Edit outline text</div><p class="editor-help">Edit the title and text below. Use four spaces for each nested level. Saving updates this package on your device.</p><textarea id="outlineEditor" class="outline-editor" spellcheck="false" aria-label="Edit outline text"></textarea><div class="toolbar"><button onclick="saveOutlineEdit()">Save changes</button><button class="secondary" onclick="cancelOutlineEdit()">Cancel</button></div></div>
+    <div class="section-title">${found?'Subcategories and concepts':'Main categories'}</div>${nodeSelectionMode ? `<div class="bulkbar"><button class="secondary small" onclick="selectAllAtCurrentLevel()">Select all</button><span>${selectedNodes.size} selected</span><button class="danger small" onclick="deleteSelectedNodes()">Delete selected</button><button class="secondary small" onclick="moveSelectedNodes()">Move selected</button><button class="secondary small" onclick="transferSelectedNodes()">Transfer to package</button><button class="secondary small" onclick="clearNodeSelection()">Clear</button><button class="secondary small" onclick="cancelNodeSelection()">Cancel</button></div>` : `<div class="toolbar"><button class="secondary small" onclick="startNodeSelection()">Select concepts</button></div>`}<div id="treeHost"></div>`;
+    const detailToolbar = $("detailView").querySelector(".card .toolbar");
+    if (detailToolbar) {
+      const editButton = detailToolbar.querySelector('button[onclick="editOutline()"]');
+      if (editButton) detailToolbar.insertBefore(visibilityToggle, editButton);
+      else detailToolbar.appendChild(visibilityToggle);
+    }
+    if(packageStarredOnly){
+      renderStarredList(starredEntries(p.id),$("treeHost"));
+    }else{
+      renderTree(shown,"treeHost",0);
+    }
+  }
+  function outlineToText(p){
+    const lines=[p.title];
+    function walk(nodes,level){
+      for(const n of nodes||[]){
+        lines.push("    ".repeat(level)+n.title);
+        walk(n.children||[],level+1);
+      }
+    }
+    walk(p.nodes,0);
+    return lines.join("\n");
+  }
+  window.editOutline=function(){
+    const p=getPackage();if(!p)return;
+    $("outlineEditor").value=outlineToText(p);
+    $("outlineEditorPanel").classList.remove("hidden");
+    $("treeHost").classList.add("hidden");
+    $("outlineEditor").focus();
+  };
+  window.cancelOutlineEdit=function(){
+    $("outlineEditorPanel").classList.add("hidden");
+    $("treeHost").classList.remove("hidden");
+  };
+  window.saveOutlineEdit=function(){
+    const p=getPackage();if(!p)return;
+    try{
+      const parsed=parseOutline($("outlineEditor").value);
+      preserveStars(p.nodes,parsed.nodes);
+      const updated={...p,title:parsed.title,nodes:parsed.nodes,editedAt:new Date().toISOString()};
+      packages=packages.map(item=>item.id===p.id?updated:item);
+      save();
+      currentPackageId=updated.id;currentNodeId=null;expanded=new Set();
+      renderDetail();
+      setStatus('Saved changes to "'+updated.title+'". Your edits are stored on this device.');
+    }catch(e){
+      alert("Could not save outline:\n"+e.message+"\n\nUse four spaces per nested level, and make sure the first line is the package title.");
+    }
+  };
+  function renderTree(nodes,hostId,depth){
+    const host=$(hostId);if(!host)return;
+    if(!nodes.length){host.innerHTML='<div class="empty">No subcategories at this level.</div>';return;}
+    host.innerHTML=nodes.map(n=>{
+      const has=n.children&&n.children.length, isOpen=expanded.has(n.id);
+      return `<div class="treeitem">${nodeSelectionMode?`<label class="pickitem"><input type="checkbox" ${selectedNodes.has(n.id)?"checked":""} onchange="toggleNodeSelection(\'${n.id}\',this.checked)"> Select</label>`:""}<button class="treebtn" type="button"><span class="nodetitle">${escapeHtml(n.title)}</span><span class="meta">${has?n.children.length+' children':''}</span></button>
+      <div class="nodeactions">${starButton(n)}<button class="secondary small" onclick="openNode('${n.id}')">Open</button><button class="secondary small" onclick="editNode('${n.id}')">Edit</button><button class="secondary small" onclick="addChild('${n.id}')">＋ Add child</button><button class="danger small" onclick="deleteNode('${n.id}')">Delete</button>${has?`<button class="secondary small" onclick="toggleNode('${n.id}')">${isOpen?'Collapse':'Expand'}</button>`:''}</div>
+      ${has&&isOpen?`<div style="padding-left:8px" id="children-${n.id}"></div>`:''}</div>`;
+    }).join("");
+    for(const n of nodes) if(n.children&&n.children.length&&expanded.has(n.id)){const el=$("children-"+n.id);if(el)renderTree(n.children,el.id,depth+1);}
+  }
+  function selectedRootNodes(nodes,selection=selectedNodes){
+    const result=[];
+    function visit(list,ancestorSelected=false){
+      for(const n of list){
+        const chosen=selection.has(n.id);
+        if(chosen&&!ancestorSelected)result.push(n);
+        visit(n.children||[],ancestorSelected||chosen);
+      }
+    }
+    visit(nodes);
+    return result;
+  }
+  window.startNodeSelection=function(){
+    selectedNodes.clear();
+    nodeSelectionMode=true;
+    renderDetail();
+  };
+  window.selectSingleNode=function(nid){
+    if(!getPackage()||!findNode(getPackage().nodes,nid))return;
+    selectedNodes=new Set([nid]);
+    nodeSelectionMode=true;
+    renderDetail();
+    setStatus("1 concept selected.");
+  };
+  window.selectAllAtCurrentLevel=function(){
+    const p=getPackage();if(!p)return;
+    const current=currentNodeId?findNode(p.nodes,currentNodeId):null;
+    const visible=currentNodeId
+      ? (current?current.node.children||[]:[])
+      : p.nodes;
+    selectedNodes=new Set(visible.map(n=>n.id));
+    nodeSelectionMode=true;
+    renderDetail();
+    setStatus(selectedNodes.size+" concept(s) selected at this level.");
+  };
+  window.cancelNodeSelection=function(){
+    selectedNodes.clear();nodeSelectionMode=false;renderDetail();
+    setStatus("Concept selection cancelled.");
+  };
+  window.toggleNodeSelection=function(nid,checked){
+    if(checked)selectedNodes.add(nid);else selectedNodes.delete(nid);
+    renderDetail();
+  };
+  window.toggleAllNodes=function(checked){
+    const p=getPackage();if(!p)return;
+    selectedNodes=checked?new Set(allNodes(p.nodes).map(n=>n.id)):new Set();
+    renderDetail();
+  };
+  window.clearNodeSelection=function(){
+    selectedNodes.clear();renderDetail();setStatus("Concept selection cleared.");
+  };
+
+  window.deleteSelectedNodes=function(){
+    const p=getPackage();if(!p)return;
+    const roots=selectedRootNodes(p.nodes);
+    if(!roots.length){setStatus("Select at least one concept first.");return;}
+    const count=selectedNodes.size;
+    if(!confirm("Delete "+count+" selected concept(s) and all descendants of selected parent concepts? This cannot be undone."))return;
+    const ids=new Set();
+    for(const n of roots)for(const item of allNodes([n]))ids.add(item.id);
+    function remove(list){
+      return list.filter(n=>!ids.has(n.id)).map(n=>{
+        n.children=remove(n.children||[]);
+        return n;
+      });
+    }
+    p.nodes=remove(p.nodes);
+    for(const id of ids)expanded.delete(id);
+    selectedNodes.clear();
+    p.editedAt=new Date().toISOString();
+    save();renderDetail();
+    setStatus(count+" selected concept(s) and their descendants deleted.");
+  };
+
+  function chooseFromList(title,items,includeRoot){
+    return new Promise(resolve=>{
+      const overlay=document.createElement("div");
+      overlay.style.cssText=
+        "position:fixed;inset:0;z-index:10000;display:flex;"+
+        "align-items:center;justify-content:center;padding:16px;"+
+        "background:rgba(0,0,0,.62)";
+
+      const panel=document.createElement("div");
+      panel.style.cssText=
+        "width:100%;max-width:520px;max-height:85vh;overflow:auto;"+
+        "padding:18px;border-radius:16px;background:var(--panel);"+
+        "color:var(--text);box-shadow:0 8px 32px #0005";
+
+      const heading=document.createElement("div");
+      heading.textContent=title;
+      heading.style.cssText=
+        "font-size:18px;font-weight:750;margin-bottom:12px";
+
+      const help=document.createElement("p");
+      help.className="notice";
+      help.textContent="Type a name to search, then tap your destination.";
+
+      const input=document.createElement("input");
+      input.type="search";
+      input.placeholder="Search by name...";
+      input.autocomplete="off";
+      input.setAttribute("aria-label","Search destinations by name");
+      input.style.cssText=
+        "display:block;width:100%;padding:13px;margin:8px 0 12px;"+
+        "border:1px solid var(--line);border-radius:10px;"+
+        "background:var(--panel);color:var(--text);font:inherit;"+
+        "font-size:16px;box-sizing:border-box";
+
+      const results=document.createElement("div");
+      results.style.cssText="max-height:48vh;overflow:auto";
+
+      const actions=document.createElement("div");
+      actions.style.cssText=
+        "display:flex;justify-content:flex-end;margin-top:12px";
+
+      const cancel=document.createElement("button");
+      cancel.type="button";
+      cancel.className="secondary";
+      cancel.textContent="Cancel";
+
+      let finished=false;
+      function finish(value){
+        if(finished)return;
+        finished=true;
+        document.removeEventListener("keydown",onKey);
+        overlay.remove();
+        resolve(value);
+      }
+      function onKey(event){
+        if(event.key==="Escape")finish(undefined);
+      }
+
+      function addChoice(label,value){
+        const button=document.createElement("button");
+        button.type="button";
+        button.className="secondary destination-choice";
+        button.textContent=label;
+        button.style.cssText=
+          "display:block;width:100%;text-align:left;margin:6px 0;"+
+          "padding:12px;overflow-wrap:anywhere;white-space:normal";
+        button.onclick=()=>finish(value);
+        results.appendChild(button);
+      }
+
+      function renderChoices(){
+        results.innerHTML="";
+        if(includeRoot){
+          addChoice("Package root (top level)",null);
+        }
+
+        const query=input.value.trim();
+        const matches=items
+          .map((item,index)=>({item,index,score:rankTitle(item.title,query)}))
+          .filter(entry=>entry.score>0)
+          .sort((a,b)=>b.score-a.score ||
+            String(a.item.title||"").localeCompare(String(b.item.title||"")))
+          .map(entry=>entry.item);
+
+        if(!matches.length){
+          const empty=document.createElement("div");
+          empty.className="empty";
+          empty.textContent="No matching destinations. Try another name.";
+          results.appendChild(empty);
+          return;
+        }
+
+        matches.slice(0,100).forEach(item=>
+          addChoice(item.title,item)
+        );
+
+        if(matches.length>100){
+          const note=document.createElement("p");
+          note.className="notice";
+          note.textContent=
+            "Showing the first 100 matches. Type more to narrow the list.";
+          results.appendChild(note);
+        }
+      }
+
+      input.addEventListener("input",renderChoices);
+      cancel.onclick=()=>finish(undefined);
+      overlay.addEventListener("click",event=>{
+        if(event.target===overlay)finish(undefined);
+      });
+
+      actions.appendChild(cancel);
+      panel.append(heading,help,input,results,actions);
+      overlay.appendChild(panel);
+      document.body.appendChild(overlay);
+      document.addEventListener("keydown",onKey);
+      renderChoices();
+      input.focus();
+    });
+  }
+
+  window.moveSelectedNodes=async function(){
+    const p=getPackage();if(!p)return;
+    const moving=selectedRootNodes(p.nodes);
+    if(!moving.length){setStatus("Select at least one concept first.");return;}
+
+    const forbidden=new Set();
+    for(const n of moving)
+      for(const item of allNodes([n]))forbidden.add(item.id);
+
+    const candidates=allNodes(p.nodes).filter(n=>!forbidden.has(n.id));
+    const destination=await chooseFromList(
+      "Move selected items into which destination?",
+      candidates,true
+    );
+    if(destination===undefined)return;
+
+    if(!confirm("Move "+moving.length+" selected item(s)"+
+      (destination?' into "'+destination.title+'"':
+      " to the package root")+
+      "? Each selected category keeps its descendants."))return;
+
+    const movingIds=new Set(moving.map(n=>n.id));
+    function remove(list){
+      return list.filter(n=>!movingIds.has(n.id)).map(n=>{
+        n.children=remove(n.children||[]);
+        return n;
+      });
+    }
+    p.nodes=remove(p.nodes);
+    if(destination){
+      if(!Array.isArray(destination.children))destination.children=[];
+      destination.children.push(...moving);
+      expanded.add(destination.id);
+    }else{
+      p.nodes.push(...moving);
+    }
+    selectedNodes.clear();
+    nodeSelectionMode=false;
+    currentNodeId=destination?destination.id:null;
+    packageStarredOnly=false;
+    if(destination){
+      const destinationPath=findNode(p.nodes,destination.id);
+      if(destinationPath)
+        for(const item of destinationPath.path.slice(0,-1))expanded.add(item.id);
+      expanded.add(destination.id);
+    }
+    p.editedAt=new Date().toISOString();
+    save();renderDetail();
+    setStatus(moving.length+" item(s) moved. Opened the destination.");
+  };
+
+  window.transferSelectedNodes=async function(){
+    const sourcePackage=getPackage();if(!sourcePackage)return;
+    const moving=selectedRootNodes(sourcePackage.nodes);
+    if(!moving.length){setStatus("Select at least one concept first.");return;}
+
+    const destinations=packages.filter(p=>p.id!==sourcePackage.id);
+    if(!destinations.length){
+      alert("Import or create another package before transferring items.");
+      return;
+    }
+
+    const destination=await chooseFromList(
+      "Transfer selected items to which package?",
+      destinations,false
+    );
+    if(destination===undefined)return;
+
+    const targets=allNodes(destination.nodes);
+    const destinationTarget=await chooseFromList(
+      "Choose the destination concept in "+destination.title,
+      targets,true
+    );
+    if(destinationTarget===undefined)return;
+
+    if(!confirm("Transfer "+moving.length+" item(s) and all their descendants "+
+      'from "'+sourcePackage.title+'" to "'+destination.title+'"?'))return;
+
+    const movingIds=new Set(moving.map(n=>n.id));
+    function remove(list){
+      return list.filter(n=>!movingIds.has(n.id)).map(n=>{
+        n.children=remove(n.children||[]);
+        return n;
+      });
+    }
+    sourcePackage.nodes=remove(sourcePackage.nodes);
+    if(destinationTarget){
+      if(!Array.isArray(destinationTarget.children))
+        destinationTarget.children=[];
+      destinationTarget.children.push(...moving);
+      expanded.add(destinationTarget.id);
+    }else{
+      destination.nodes.push(...moving);
+    }
+    const now=new Date().toISOString();
+    sourcePackage.editedAt=now;
+    destination.editedAt=now;
+    selectedNodes.clear();
+    nodeSelectionMode=false;
+    currentPackageId=destination.id;
+    currentNodeId=destinationTarget?destinationTarget.id:null;
+    packageStarredOnly=false;
+    if(destinationTarget){
+      const targetPath=findNode(destination.nodes,destinationTarget.id);
+      if(targetPath)
+        for(const item of targetPath.path.slice(0,-1))expanded.add(item.id);
+      expanded.add(destinationTarget.id);
+    }
+    save();renderDetail();
+    setStatus(moving.length+" item(s) transferred. Opened "+
+      (destinationTarget?destinationTarget.title:destination.title)+".");
+  };
+
+  window.selectNode=function(nid){openNode(nid);};
+  window.deleteNode=function(nid){
+    const p=getPackage();if(!p)return;
+    const f=findNode(p.nodes,nid);if(!f)return;
+    if(!confirm('Delete "'+f.node.title+'" and all its descendants? This cannot be undone.'))return;
+    if(f.parent)f.parent.children=f.parent.children.filter(n=>n.id!==nid);
+    else p.nodes=p.nodes.filter(n=>n.id!==nid);
+    for(const n of allNodes([f.node]))expanded.delete(n.id);
+    p.editedAt=new Date().toISOString();
+    save();renderDetail();
+    setStatus("Concept and its descendants deleted.");
+  };
+  window.editNode=function(nid){
+    const p=getPackage();if(!p)return;
+    const f=findNode(p.nodes,nid);if(!f)return;
+    const title=prompt("Edit concept title:",f.node.title);
+    if(title===null)return;
+    const clean=title.trim();
+    if(!clean){alert("A concept title cannot be empty.");return;}
+    f.node.title=clean;
+    p.editedAt=new Date().toISOString();
+    save();renderDetail();
+    setStatus("Concept updated.");
+  };
+  window.addChild=function(parentId){
+    const p=getPackage();if(!p)return;
+    const title=prompt(parentId?"New child concept title:":"New top-level concept title:");
+    if(title===null)return;
+    const clean=title.trim();
+    if(!clean){alert("A concept title cannot be empty.");return;}
+    const node={id:id(),title:clean,children:[]};
+    if(parentId){
+      const f=findNode(p.nodes,parentId);if(!f)return;
+      if(!Array.isArray(f.node.children))f.node.children=[];
+      f.node.children.push(node);
+      expanded.add(parentId);
+    }else{
+      p.nodes.push(node);
+    }
+    p.editedAt=new Date().toISOString();
+    save();renderDetail();
+    setStatus("New concept added and saved on this device.");
+  };
+  window.addItem=function(){addChild(currentNodeId);};
+  window.toggleNode=function(nid){if(expanded.has(nid))expanded.delete(nid);else expanded.add(nid);renderDetail();};
+  window.openNode=function(nid){selectedNodes.clear();nodeSelectionMode=false;currentNodeId=nid;renderDetail();};
+  window.goParent=function(){if(!currentNodeId){selectedNodes.clear();nodeSelectionMode=false;renderHome();return;}const p=getPackage(),f=findNode(p.nodes,currentNodeId);if(f&&f.path.length>1)currentNodeId=f.path[f.path.length-2].id;else currentNodeId=null;selectedNodes.clear();nodeSelectionMode=false;renderDetail();};
+  window.expandAll=function(){const p=getPackage();if(p)for(const n of allNodes(p.nodes))if(n.children.length)expanded.add(n.id);renderDetail();};
+  window.collapseAll=function(){expanded.clear();renderDetail();};
+  function rankTitle(title, query){
+    const text=String(title||"").toLocaleLowerCase().trim()
+      .replace(/\s+/g," ");
+    const q=String(query||"").toLocaleLowerCase().trim()
+      .replace(/\s+/g," ");
+    if(!q)return 1;
+    if(text===q)return 1000;
+    if(text.startsWith(q))return 900;
+
+    const words=text.split(/[\s\-_/.,:;()[\]{}]+/).filter(Boolean);
+    if(words.some(word=>word.startsWith(q)))return 800;
+    if(text.includes(q))return 700;
+
+    const queryWords=q.split(/[\s\-_/.,:;()[\]{}]+/).filter(Boolean);
+    if(queryWords.length &&
+       queryWords.every(qw=>words.some(word=>word.startsWith(qw)))){
+      return 600;
+    }
+    if(queryWords.length &&
+       queryWords.every(qw=>text.includes(qw))){
+      return 500;
+    }
+    return 0;
+  }
+
+  function refreshSearchPackageOptions(){
+    const list=$("packageSuggestions");
+    if(!list)return;
+    list.innerHTML=packages.map(p=>
+      `<option value="${escapeHtml(p.title)}"></option>`
+    ).join("");
+  }
+  function search(q){
+    const out=$("searchResults");
+    const query=q.trim();
+    refreshSearchPackageOptions();
+    if(!query){
+      out.innerHTML="";
+      $("homeView").classList.remove("hidden");
+      $("detailView").classList.add("hidden");
+      return;
+    }
+    $("homeView").classList.add("hidden");
+    $("detailView").classList.add("hidden");
+
+    const scope=$("searchScope").value;
+    const packageFilter=$("searchPackage").value.trim();
+    const hits=[];
+
+    for(const p of packages){
+      if(packageFilter && rankTitle(p.title,packageFilter)===0)continue;
+
+      if(scope!=="concepts" && rankTitle(p.title,query)>0){
+        hits.push({
+          type:"Package",title:p.title,pkg:p,path:p.title,
+          packageHit:true
+        });
+      }
+
+      if(scope!=="packages"){
+        for(const n of allNodes(p.nodes)){
+          if(rankTitle(n.title,query)>0){
+            const f=findNode(p.nodes,n.id);
+            hits.push({
+              type:"Concept",title:n.title,pkg:p,
+              path:p.title+" / "+f.path.map(x=>x.title).join(" / "),
+              node:n
+            });
+          }
+        }
+      }
+    }
+
+    hits.sort((a,b)=>
+      rankTitle(b.title,query)-rankTitle(a.title,query) ||
+      rankTitle(b.pkg.title,packageFilter)-rankTitle(a.pkg.title,packageFilter) ||
+      a.title.localeCompare(b.title)
+    );
+
+    const scopeLabel=scope==="packages"?"package titles":
+      scope==="concepts"?"concepts":"packages and concepts";
+
+    out.innerHTML=`<div class="section-title">Search results · ${hits.length} <span class="meta">(${scopeLabel})</span></div>`+
+      (hits.length?hits.slice(0,250).map(h=>`<div class="card result" onclick="${h.packageHit?`openPackage('${h.pkg.id}')`:`openSearchHit('${h.pkg.id}','${h.node.id}')`}"><div class="meta">${h.type}</div><strong>${escapeHtml(h.title)}</strong><div class="meta">${escapeHtml(h.path)}</div></div>`).join(""):'<div class="empty">No matching package or concept found with these filters.</div>');
+  }
+    window.openSearchHit=function(pid,nid){openPackage(pid);currentNodeId=nid;renderDetail();};
+  function render(){const q=$("search").value;if(q.trim())search(q);else renderHome();}
+  $("importBtn").addEventListener("click",()=>importFile("outline"));
+  $("importBackupBtn").addEventListener("click",()=>importFile("backup"));
+  $("exportBackupBtn").addEventListener("click",exportBackup);
+  $("homeBtn").addEventListener("click",()=>{$("search").value="";currentPackageId=null;currentNodeId=null;packageStarredOnly=false;renderHome();});
+  $("search").addEventListener("input",e=>search(e.target.value));
+  $("searchScope").addEventListener("change",()=>search($("search").value));
+  $("searchPackage").addEventListener("input",()=>search($("search").value));
+  window.canGoBackInLibrary=()=>!!currentPackageId||!!$("search").value;
+  window.handleAndroidBack=()=>{if($("search").value){$("search").value="";search("");return true;}if(currentNodeId){goParent();return true;}if(currentPackageId){currentPackageId=null;renderHome();return true;}return false;};
+
+  const BUTTON_VISIBILITY_KEY = "knowledge-library-buttons-hidden-v1";
+  const visibilityToggle = document.getElementById("buttonVisibilityToggle");
+
+  function applyButtonVisibility(hidden) {
+    document.body.classList.toggle("hide-app-buttons", hidden);
+    visibilityToggle.textContent = hidden ? "Show buttons" : "Hide buttons";
+    visibilityToggle.setAttribute("aria-pressed", String(hidden));
+    visibilityToggle.setAttribute(
+      "aria-label", hidden ? "Show app buttons" : "Hide app buttons"
+    );
+  }
+
+  let buttonsHidden = false;
+  try {
+    buttonsHidden = localStorage.getItem(BUTTON_VISIBILITY_KEY) === "true";
+  } catch (e) {}
+
+  applyButtonVisibility(buttonsHidden);
+
+  visibilityToggle.addEventListener("click", () => {
+    buttonsHidden = !document.body.classList.contains("hide-app-buttons");
+    applyButtonVisibility(buttonsHidden);
+    try {
+      localStorage.setItem(BUTTON_VISIBILITY_KEY, String(buttonsHidden));
+    } catch (e) {}
+  });
+
+  renderHome();
+})();
+</script>
+</body>
+</html>
