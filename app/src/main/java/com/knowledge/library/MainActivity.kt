@@ -44,7 +44,18 @@ private fun parseOutline(raw:String): LibraryPackage? {
     }
     return pkg
 }
-private fun nodeJson(n:Node)=JSONObject().put("id",n.id).put("title",n.title).put("starred",n.starred).put("children",JSONArray().also { a->n.children.forEach { a.put(nodeJson(it)) } })
+private fun nodeJson(n: Node): JSONObject {
+    val children = JSONArray()
+    for (child in n.children) {
+        children.put(nodeJson(child))
+    }
+
+    return JSONObject()
+        .put("id", n.id)
+        .put("title", n.title)
+        .put("starred", n.starred)
+        .put("children", children)
+}
 private fun packageJson(p:LibraryPackage)=JSONObject().put("id",p.id).put("title",p.title).put("nodes",JSONArray().also { a->p.nodes.forEach { a.put(nodeJson(it)) } })
 private fun readNode(o:JSONObject):Node { val n=Node(o.optString("id",UUID.randomUUID().toString()),o.optString("title","Untitled"),o.optBoolean("starred")); val a=o.optJSONArray("children")?:JSONArray(); for(i in 0 until a.length()) n.children.add(readNode(a.getJSONObject(i))); return n }
 private fun readPackage(o:JSONObject):LibraryPackage { val p=LibraryPackage(o.optString("id",UUID.randomUUID().toString()),o.optString("title","Untitled")); val a=o.optJSONArray("nodes")?:JSONArray(); for(i in 0 until a.length()) p.nodes.add(readNode(a.getJSONObject(i))); return p }
